@@ -1,0 +1,46 @@
+name: Pro App Builder Engine
+on:
+  repository_dispatch:
+    types: [build_app]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Inject User Data
+        run: |
+          # حقن اسم التطبيق والرابط والـ ID بشكل آلي
+          sed -i 's|"url": ".*"|"url": "${{ github.event.client_payload.user_url }}"|g' capacitor.config.json
+          sed -i 's|<string name="app_name">.*</string>|<string name="app_name">${{ github.event.client_payload.app_name }}</string>|g' android/app/src/main/res/values/strings.xml
+
+      - name: Install Dependencies & Sync
+        run: |
+          npm install
+          npx cap sync android
+
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload & Generate Direct Link
+        run: |
+          # رفع الملف والحصول على رابط تحميل مباشر فوراً
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+          BUILD_ID="${{ github.event.client_payload.build_id }}"
+          
+          # رفع الملف لخدمة transfer.sh للحصول على رابط مباشر بدون تسجيل دخول
+          DOWNLOAD_URL=$(curl --upload-file $APK_PATH https://transfer.sh/$BUILD_ID.apk)
+          echo "--------------------------------------------------"
+          echo "SUCCESS! Your App is ready."
+          echo "Direct Download Link: $DOWNLOAD_URL"
+          echo "--------------------------------------------------"
