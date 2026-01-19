@@ -1,0 +1,10 @@
+{
+  "appId": "com.pro.webview",
+  "appName": "my app",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://placeholder.com",
+    "allowNavigation": ["*"]
+  }
+}
